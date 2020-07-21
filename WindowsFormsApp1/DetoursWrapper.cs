@@ -33,13 +33,30 @@ namespace WindowsFormsApp1
         private bool[] _traceRequired = null;
         private string _commandline = string.Empty;
 
+        private string _logFilePath = string.Empty;
 
         private Process _loggerProcess = null;
         private Process _tracerProcess = null;
 
         private object _locker = new object();
 
-        public DetoursWrapper(bool isX64, bool[] traceRequired, string commandline)
+        public string GetLogPath()
+        {
+            return _logFilePath;
+        }
+        public void SetLogPath(string logPath)
+        {
+            _logFilePath = logPath;
+        }
+
+        public DetoursWrapper()
+        {
+            _traceLogDir = Path.Combine(Environment.ExpandEnvironmentVariables(Directory.GetParent(Assembly.GetExecutingAssembly().Location).FullName), "Log");
+            if (!Directory.Exists(_traceLogDir))
+                Directory.CreateDirectory(_traceLogDir);
+        }
+
+        public void Init(bool isX64, bool[] traceRequired, string commandline)
         {
             if (traceRequired.Length != this.TRACE_DLL_FILE_NAMES.Length)
                 throw new Exception("Trace required is not match");
@@ -51,14 +68,14 @@ namespace WindowsFormsApp1
             _traceRequired = traceRequired;
             _commandline = Environment.ExpandEnvironmentVariables(commandline);
 
-            _detoursBinDir = Environment.ExpandEnvironmentVariables(this._isX64 ? DETOURS_BIN_X64_DIR : DETOURS_BIN_X86_DIR);
-            _traceLogDir = Environment.ExpandEnvironmentVariables(Directory.GetParent(Assembly.GetExecutingAssembly().Location).FullName);
+            _detoursBinDir = Environment.ExpandEnvironmentVariables(this._isX64 ? DETOURS_BIN_X64_DIR : DETOURS_BIN_X86_DIR);            
         }
 
         private Process StartLogger()
         {
             var filePath = Path.Combine(_detoursBinDir , SYELOGD_EXE_NAME);
-            var arguments = @"/q /o " + Path.Combine(_traceLogDir, Guid.NewGuid().ToString("B"));
+            _logFilePath = Path.Combine(_traceLogDir, Guid.NewGuid().ToString("B"));
+            var arguments = @"/q /o " + _logFilePath;
 
             return Process.Start(filePath, arguments);
         }
@@ -86,22 +103,41 @@ namespace WindowsFormsApp1
 
         public void Trace()
         {
-            lock(_locker)
+            try
             {
-                // Log
-                _loggerProcess = StartLogger();
+                lock (_locker)
+                {
+                    // Log
+                    _loggerProcess = StartLogger();
 
-                // Trace
-                _tracerProcess = StartTrace();
+                    // Trace
+                    _tracerProcess = StartTrace();
+                }
+            } catch (Exception ex)
+            { 
             }
         }
 
         public void Terminate()
         {
-            lock (_locker)
+            try
             {
-                _tracerProcess.Kill();
-                _loggerProcess.Kill();
+                lock (_locker)
+                {
+                    _tracerProcess.Kill();
+                    _loggerProcess.Kill();
+                }
+                
+            } catch (Exception ex)
+            {
+            }
+        }
+
+        public void Cleanup()
+        {
+            foreach (var filePath in Directory.GetFiles(_traceLogDir))
+            {
+                File.Delete(filePath);
             }
         }
     }
