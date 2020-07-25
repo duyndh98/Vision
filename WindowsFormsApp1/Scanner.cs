@@ -44,7 +44,8 @@ namespace WindowsFormsApp1
         public enum SignatureEnum
         {
             PsExec,
-            Process_Injection
+            Process_Injection,
+            AutoRun
         }
 
         private string _logPath = string.Empty;
@@ -94,6 +95,15 @@ namespace WindowsFormsApp1
 
             if (virtualAllocExIds.First() < writeProcessMemoryIds.Last()
                 && writeProcessMemoryIds.First() < createRemoteThreadIds.First())
+                return true;
+
+            return false;
+        }
+
+        public bool ScanAutoRun(Log[] logs)
+        {
+            var trcApiLogs = logs.Where(x => x.Type == TraceType.Api).ToArray();
+            if (trcApiLogs.Any(x => x.Content.Contains(@"REG ADD") && x.Content.Contains(@"SOFTWARE\Microsoft\Windows\CurrentVersion\Run")))
                 return true;
 
             return false;
@@ -154,8 +164,12 @@ namespace WindowsFormsApp1
             var signatures = new List<SignatureEnum>();
             if (ScanPsExec(logs))
                 signatures.Add(SignatureEnum.PsExec);
+            
             if (ScanProcessInjection(logs))
                 signatures.Add(SignatureEnum.Process_Injection);
+
+            if (ScanAutoRun(logs))
+                signatures.Add(SignatureEnum.AutoRun);
 
             _scanResult = signatures;
         }

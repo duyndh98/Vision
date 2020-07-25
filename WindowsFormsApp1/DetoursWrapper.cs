@@ -11,8 +11,8 @@ namespace WindowsFormsApp1
 {
     public class DetoursWrapper
     {
-        private const string DETOURS_BIN_X86_DIR = @"%DETOURS_BIN_X86%";
-        private const string DETOURS_BIN_X64_DIR = @"%DETOURS_BIN_X64%";
+        private const string DETOURS_BIN_X86_DIR = @"%DETOURS_HOME%\bin.X86";
+        private const string DETOURS_BIN_X64_DIR = @"%DETOURS_HOME%\bin.X64";
         private const string SYELOGD_EXE_NAME = "syelogd.exe";
         private const string WITHDLL_EXE_NAME = "withdll.exe";
 

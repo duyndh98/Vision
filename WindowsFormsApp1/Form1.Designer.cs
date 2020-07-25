@@ -79,6 +79,8 @@
             // checkBoxX64
             // 
             this.checkBoxX64.AutoSize = true;
+            this.checkBoxX64.Checked = true;
+            this.checkBoxX64.CheckState = System.Windows.Forms.CheckState.Checked;
             this.checkBoxX64.Font = new System.Drawing.Font("Microsoft Sans Serif", 10.2F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.checkBoxX64.Location = new System.Drawing.Point(17, 181);
             this.checkBoxX64.Margin = new System.Windows.Forms.Padding(4);
