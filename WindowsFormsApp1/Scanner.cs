@@ -45,7 +45,9 @@ namespace WindowsFormsApp1
         {
             PsExec,
             Process_Injection,
-            AutoRun
+            AutoRun,
+            SignedBinaryProxyExecution,
+            Mimikazt
         }
 
         private string _logPath = string.Empty;
@@ -103,7 +105,52 @@ namespace WindowsFormsApp1
         public bool ScanAutoRun(Log[] logs)
         {
             var trcApiLogs = logs.Where(x => x.Type == TraceType.Api).ToArray();
-            if (trcApiLogs.Any(x => x.Content.Contains(@"REG ADD") && x.Content.Contains(@"SOFTWARE\Microsoft\Windows\CurrentVersion\Run")))
+            if (trcApiLogs.Any(x => ContainsOrdinalIgnoreCase(x.Content, @"REG ADD") && ContainsOrdinalIgnoreCase(x.Content, @"SOFTWARE\Microsoft\Windows\CurrentVersion\Run")))
+                return true;
+
+            return false;
+        }
+
+        public bool ScanSignedBinaryProxyExecution(Log[] logs)
+        {
+            var trcApiLogs = logs.Where(x => x.Type == TraceType.Api).ToArray();
+            if (trcApiLogs.Any(x => ContainsOrdinalIgnoreCase(x.Content, @"GetModuleFileName") && 
+            (
+                ContainsOrdinalIgnoreCase(x.Content, @"rundll32.exe") ||
+                ContainsOrdinalIgnoreCase(x.Content, @"regsvr32.exe") ||
+                ContainsOrdinalIgnoreCase(x.Content, @"mshta.exe")
+            )))
+                return true;
+
+            return false;
+        }
+
+        public bool ScanMimikazt(Log[] logs)
+        {
+            var trcLnkLogs = logs.Where(x => x.Type == TraceType.Lnk).ToArray();
+            var checkDlls = new string[]
+            {
+                "vaultcli.dll",
+                "wlanapi.dll",
+                "ntdsapi.dll",
+                "netapi32.dll",
+                "imm32.dll",
+                "samlib.dll",
+                "combase.dll",
+                "srvcli.dll",
+                "shcore.dll",
+                "ntasn1.dll",
+                "cryptdll.dll",
+                "logoncli.dll"
+            };
+            int detectedCount = 0;
+            foreach (var dllName in checkDlls)
+            {
+                if (trcLnkLogs.Any(x => ContainsOrdinalIgnoreCase(x.Content, dllName)))
+                    detectedCount++;
+            }
+
+            if (detectedCount >= 8)
                 return true;
 
             return false;
@@ -170,6 +217,12 @@ namespace WindowsFormsApp1
 
             if (ScanAutoRun(logs))
                 signatures.Add(SignatureEnum.AutoRun);
+
+            if (ScanSignedBinaryProxyExecution(logs))
+                signatures.Add(SignatureEnum.SignedBinaryProxyExecution);
+
+            if (ScanMimikazt(logs))
+                signatures.Add(SignatureEnum.Mimikazt);
 
             _scanResult = signatures;
         }
